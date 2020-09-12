@@ -3,16 +3,22 @@
 const http = require('http');
 // @ts-ignore
 const httpProxy = require('loadfire');
+const PriorityOptions = require('./PriorityOptions').PriorityOptions;
+const PriorityQueue = require('./PriorityQueue').PriorityQueue;
+// const httpProxy = require('./LoadBalancing-Proxy/Proxy/index');
 
 /**
- * https://github.com/http-party/node-http-proxy#setup-a-stand-alone-proxy-server-with-custom-server-logic
  * @param {number} reverseProxyPort 
  * @param {Array<string>} appServerPorts 
  */
 const StartLoadBalancer = (
     reverseProxyPort,    
-    appServerPorts
+    appServerPorts,
+    priorityOption = PriorityOptions.None,
+    priorityHeader = 'db-x-priority'
 ) => {
+    const priorityQueue = new PriorityQueue();
+
     const appServersConfig = appServerPorts.map(
         (port) => {
             return {
@@ -29,19 +35,38 @@ const StartLoadBalancer = (
             const server = http.createServer(    
                 (request, response) => {
                     const getTimestamp = () => new Date().getTime();
-            
+
+                    let prioritizedResponse = response;
+                    let responseToProcess;
+                    if (priorityOption !== PriorityOptions.None) {
+                        
+                        const requestPriority = 
+                            (priorityOption === PriorityOptions.Prioritized) 
+                                ? Number(request.headers[priorityHeader]) 
+                                : PriorityOptions.Uniform;
+                        // At this point, the load balancing algorithm has chosen this server,
+                        // but we want to prioritize requests.
+                        priorityQueue.Enqueue(
+                            response, 
+                            requestPriority
+                        );
+                        responseToProcess = priorityQueue.Dequeue()
+                        if (responseToProcess) {
+                            prioritizedResponse = responseToProcess.Response;
+                        }
+                    }
                     try {
-                        response.setHeader('content-type', 'application/json');
-                        response.writeHead(200);
-                        response.end(
-                            `{ "server": ${port}, "timestamp" : ${getTimestamp()} }`
+                        prioritizedResponse.setHeader('content-type', 'application/json');
+                        prioritizedResponse.writeHead(200);
+                        prioritizedResponse.end(
+                            `{ "server": ${port}, "priority": ${responseToProcess.Priority}, "timestamp" : ${getTimestamp()} }`
                         );
                         console.log(getTimestamp());
                     }
                     catch (err) {
                         console.error(err);
-                        response.writeHead(500);
-                        response.end();
+                        prioritizedResponse.writeHead(500);
+                        prioritizedResponse.end();
                     }
                 }
             );    
@@ -49,10 +74,9 @@ const StartLoadBalancer = (
         }
     );
 
-    const host = httpProxy.selectors.host(`localhost:${reverseProxyPort}`);
     const proxyConfig = {
         'resources': [{
-            selector: host,
+            selector: httpProxy.selectors.host(`localhost:${reverseProxyPort}`),
             backends: appServersConfig,
             balancer: httpProxy.balancers.roundrobin // random, roundrobin
         }],

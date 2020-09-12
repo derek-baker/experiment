@@ -7,10 +7,15 @@
 'use strict';
 
 const server = require('../HttpServer');
+const PriorityOptions = require('../PriorityOptions').PriorityOptions;
 
 // Parsing of args in this way requires you follow the usage above.
 const loadBalancerPort = process.argv.slice(2)[0];
 const appServerports = process.argv.slice(3);
 
-server.StartLoadBalancer(Number(loadBalancerPort), appServerports);
+// server.StartLoadBalancer(Number(loadBalancerPort), appServerports);
+
+// server.StartLoadBalancer(Number(loadBalancerPort), appServerports, PriorityOptions.Uniform);
+
+server.StartLoadBalancer(Number(loadBalancerPort), appServerports, PriorityOptions.Prioritized);
 

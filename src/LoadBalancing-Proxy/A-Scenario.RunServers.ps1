@@ -7,7 +7,6 @@ param(
     $loadBalancerPort = 8080,
     
     [Parameter(Mandatory=$false)]
-    # $ports = @($loadBalancerPort),
     $ports = @($loadBalancerPort, 8081, 8082),
 
     [Parameter(Mandatory=$false)]
@@ -17,8 +16,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop";
 
-[string] $errOut = $null
-[string] $stdOut = $null
+# [string] $errOut = $null
+# [string] $stdOut = $null
 
 $command = $node + " " + $serversScriptPath
 
@@ -26,16 +25,9 @@ foreach ($port in $ports) {
     $command +=  (" " + $port)
 }
 
-$command
-
 Invoke-Expression `
-    -Command $command `
-    -ErrorVariable errOut `
-    -OutVariable stdOut
-
- 
-# Start-ThreadJob `
-#     -ScriptBlock $scriptBlock `
-#     -ArgumentList @($serverScriptPath) 
+    -Command $command 
+    # -ErrorVariable errOut `
+    # -OutVariable stdOut
 
 

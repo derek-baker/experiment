@@ -7,10 +7,16 @@ $requestScriptBlock = {
         [string] $url,
 
         [Parameter(Mandatory=$true)]
-        [string] $logfile
+        [string] $logfile,
+
+        [Parameter(Mandatory=$true)]
+        [string] $priority
     )
     try {
-        Invoke-RestMethod -Method GET -Uri $url -Verbose | `
+        $headers = @{
+            'db-x-priority' = $priority
+        }
+        Invoke-RestMethod -Method GET -Uri $url -Headers $headers -Verbose | `
             Out-File -FilePath $logfile -Append -Force        
     }
     catch {
@@ -31,15 +37,15 @@ function cleanOldLogs(
     }
 }
 
-function RunScenarioA(
+function RunScenario(
     [Parameter(Mandatory=$true)]
     [string] $loadBalancerUrl,
 
     [Parameter(Mandatory=$false)]
-    [int] $maxRequestsPerSec = 10,
+    [int] $maxRequestsPerSec = 5,
 
-    # [Parameter(Mandatory=$false)]
-    # [int] $priority = $null,
+    [Parameter(Mandatory=$false)]
+    $priorityGenerator = { return $null },
 
     [Parameter(Mandatory=$false)]
     [int] $runtimeSecs = 5,
@@ -71,12 +77,13 @@ function RunScenarioA(
 
             Write-Host "Making request $requestsMadeInThisInterval in interval $intervalNum"
 
-            $time = getTimestamp
-            
+            $time = getTimestamp            
             $logfile = "$logDir\$time.txt"
+            $priority = Invoke-Command -ScriptBlock $priorityGenerator
+
             Start-ThreadJob `
                 -ScriptBlock $requestScriptBlock `
-                -ArgumentList @($loadBalancerUrl, $logfile) | Out-Null
+                -ArgumentList @($loadBalancerUrl, $logfile, $priority) | Out-Null
         }
         elseif ($requestsMadeInThisInterval -eq $maxRequestsPerSec) {
             $requestsMadeInThisInterval = 0
@@ -87,66 +94,5 @@ function RunScenarioA(
     # Get-Job | Wait-Job    
 }
 
-function RunScenarioB(
-    [Parameter(Mandatory=$true)]
-    [string] $serverUrl,
 
-    [Parameter(Mandatory=$false)]
-    [int] $maxRequestsPerSec = 50,
-
-    [Parameter(Mandatory=$false)]
-    [int] $priority = 1,
-
-    [Parameter(Mandatory=$false)]
-    [int] $runtimeSecs = 5,
-
-    [Parameter(Mandatory=$false)]
-    [string] $logDir = "$PSScriptRoot\Logs"
-) {
-    cleanOldLogs -logDir $logDir
-
-    [int] $start = getTimestamp
-    [int] $intervalNum = getTimestamp
-    [int] $requestsMadeInThisInterval = 0
-    
-    while ($true) {
-        [int] $now = getTimestamp
-        
-        if ($now -ge ($start + $runtimeSecs)) {
-            Write-Host "`nENDING SESSION."
-            Write-Host "Started: $start"
-            Write-Host "Ended: $($start + $runtimeSecs)"
-            break
-        }
-        elseif (
-            ($now -eq $intervalNum) `
-            -and `
-            ($requestsMadeInThisInterval -lt $maxRequestsPerSec)
-        ) {
-            $requestsMadeInThisInterval += 1
-
-            Write-Host "Making request $requestsMadeInThisInterval in interval $intervalNum"
-
-            $time = getTimestamp
-            
-            $logfile = "$logDir\$time.txt"
-            Start-ThreadJob `
-                -ScriptBlock $requestScriptBlock `
-                -ArgumentList @($serverUrl, $logfile) | Out-Null
-        }
-        elseif ($requestsMadeInThisInterval -eq $maxRequestsPerSec) {
-            $requestsMadeInThisInterval = 0
-            $intervalNum += 1
-            Write-Host "`n"
-        }
-    }    
-    # Get-Job | Wait-Job    
-}
-
-# function RunScenarioC(
-#     [int] $requestRate
-# ) {
-#     [int] $priority
-# }
-
-Export-ModuleMember -Function RunScenarioA
+Export-ModuleMember -Function RunScenario
