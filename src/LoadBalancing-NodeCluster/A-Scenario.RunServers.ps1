@@ -7,7 +7,8 @@ param(
     $loadBalancerPort = 8080,
     
     [Parameter(Mandatory=$false)]
-    $ports = @($loadBalancerPort, 8081, 8082),
+    $ports = @($loadBalancerPort),
+    # $ports = @($loadBalancerPort, 8081, 8082),
 
     [Parameter(Mandatory=$false)]
     [string] $node = 'node'
@@ -32,6 +33,7 @@ Invoke-Expression `
     -ErrorVariable errOut `
     -OutVariable stdOut
 
+ 
 # Start-ThreadJob `
 #     -ScriptBlock $scriptBlock `
 #     -ArgumentList @($serverScriptPath) 

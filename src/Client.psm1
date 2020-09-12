@@ -142,6 +142,7 @@ function RunScenarioB(
     }    
     # Get-Job | Wait-Job    
 }
+
 # function RunScenarioC(
 #     [int] $requestRate
 # ) {
