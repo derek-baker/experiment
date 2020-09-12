@@ -10,9 +10,10 @@ const StartServer = (port = 8080) => {
             try {
                 response.setHeader('content-type', 'application/json');
                 response.writeHead(200);
-                response.end(
-                    `{ 'timestamp' : ${getTimestamp()} }`
-                );
+                response.end(`{ 
+                    'server': ${port},
+                    'timestamp' : ${getTimestamp()}
+                }`);
                 console.log(getTimestamp());
             }
             catch (err) {

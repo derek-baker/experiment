@@ -1,8 +1,12 @@
+# USAGE: pwsh <SCRIPT_PATH>.ps1
+param(
+    # 
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop";
 
 Remove-Module -Name "$PSScriptRoot/../Client" -Force -ErrorAction SilentlyContinue
 Import-Module -Name "$PSScriptRoot/../Client" -Force
 
-# node ./A-Scenario.Server.js
-RunScenarioA -serverUrl 'http://localhost:8081'
+RunScenarioA -loadBalancerUrl 'http://localhost:8082'

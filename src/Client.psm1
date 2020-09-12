@@ -9,13 +9,13 @@ $requestScriptBlock = {
         [Parameter(Mandatory=$true)]
         [string] $logfile
     )
-    
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = "Stop";
-    
-    Invoke-RestMethod -Method GET -Uri $url -Verbose | `
-        Out-File -FilePath $logfile -Append -Force
-        # $time = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+    try {
+        Invoke-RestMethod -Method GET -Uri $url -Verbose | `
+            Out-File -FilePath $logfile -Append -Force        
+    }
+    catch {
+        Out-File -InputObject $_ -FilePath $logfile -Append -Force
+    }
 }
 
 function getTimestamp() {
@@ -33,13 +33,13 @@ function cleanOldLogs(
 
 function RunScenarioA(
     [Parameter(Mandatory=$true)]
-    [string] $serverUrl,
+    [string] $loadBalancerUrl,
 
     [Parameter(Mandatory=$false)]
     [int] $maxRequestsPerSec = 10,
 
-    [Parameter(Mandatory=$false)]
-    [int] $priority = $null,
+    # [Parameter(Mandatory=$false)]
+    # [int] $priority = $null,
 
     [Parameter(Mandatory=$false)]
     [int] $runtimeSecs = 5,
@@ -50,9 +50,63 @@ function RunScenarioA(
     cleanOldLogs -logDir $logDir
 
     [int] $start = getTimestamp
-
     [int] $intervalNum = getTimestamp
+    [int] $requestsMadeInThisInterval = 0
+    
+    while ($true) {
+        [int] $now = getTimestamp
+        
+        if ($now -ge ($start + $runtimeSecs)) {
+            Write-Host "`nENDING SESSION."
+            Write-Host "Started: $start"
+            Write-Host "Ended: $($start + $runtimeSecs)"
+            break
+        }
+        elseif (
+            ($now -eq $intervalNum) `
+            -and `
+            ($requestsMadeInThisInterval -lt $maxRequestsPerSec)
+        ) {
+            $requestsMadeInThisInterval += 1
 
+            Write-Host "Making request $requestsMadeInThisInterval in interval $intervalNum"
+
+            $time = getTimestamp
+            
+            $logfile = "$logDir\$time.txt"
+            Start-ThreadJob `
+                -ScriptBlock $requestScriptBlock `
+                -ArgumentList @($loadBalancerUrl, $logfile) | Out-Null
+        }
+        elseif ($requestsMadeInThisInterval -eq $maxRequestsPerSec) {
+            $requestsMadeInThisInterval = 0
+            $intervalNum += 1
+            Write-Host "`n"
+        }
+    }    
+    # Get-Job | Wait-Job    
+}
+
+function RunScenarioB(
+    [Parameter(Mandatory=$true)]
+    [string] $serverUrl,
+
+    [Parameter(Mandatory=$false)]
+    [int] $maxRequestsPerSec = 50,
+
+    [Parameter(Mandatory=$false)]
+    [int] $priority = 1,
+
+    [Parameter(Mandatory=$false)]
+    [int] $runtimeSecs = 5,
+
+    [Parameter(Mandatory=$false)]
+    [string] $logDir = "$PSScriptRoot\Logs"
+) {
+    cleanOldLogs -logDir $logDir
+
+    [int] $start = getTimestamp
+    [int] $intervalNum = getTimestamp
     [int] $requestsMadeInThisInterval = 0
     
     while ($true) {
@@ -85,21 +139,9 @@ function RunScenarioA(
             $intervalNum += 1
             Write-Host "`n"
         }
-        # Get-Job -State Completed `
-        #     | Receive-Job -Wait `
-        #         | Out-File -Append -FilePath "$PSScriptRoot\Logs\job-log.txt"
-        
     }    
     # Get-Job | Wait-Job    
 }
-
-# function RunScenarioB(
-#     [int] $requestRate,
-#     [int] $priority = 1
-# ) {
-
-# }
-
 # function RunScenarioC(
 #     [int] $requestRate
 # ) {
