@@ -13,7 +13,7 @@ const StartServer = (port = 8080) => {
                 response.end(
                     `{ 'timestamp' : ${getTimestamp()} }`
                 );
-                console.log(Date.now());
+                console.log(getTimestamp());
             }
             catch (err) {
                 console.error(err);

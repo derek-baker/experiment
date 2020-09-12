@@ -3,29 +3,48 @@ $ErrorActionPreference = "Stop";
 
 $requestScriptBlock = { 
     param(
+        [Parameter(Mandatory=$true)]
         [string] $url,
+
+        [Parameter(Mandatory=$true)]
         [string] $logfile
     )
-    # Invoke-RestMethod -Method GET -Uri $url -Verbose `
-    $time = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-    Out-File -InputObject $time -FilePath $logfile -Append -Force
+    
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = "Stop";
+    
+    Invoke-RestMethod -Method GET -Uri $url -Verbose | `
+        Out-File -FilePath $logfile -Append -Force
+        # $time = [DateTimeOffset]::Now.ToUnixTimeSeconds()
 }
 
 function getTimestamp() {
     return [DateTimeOffset]::Now.ToUnixTimeSeconds()
 }
 
-function cleanOldLogs([string] $logDir) {
+function cleanOldLogs(
+    [Parameter(Mandatory=$true)]
+    [string] $logDir
+) {
     Get-ChildItem -Path $logDir -Recurse | ForEach-Object {
          Remove-Item -Path $_.FullName -Force -Verbose
     }
 }
 
 function RunScenarioA(
+    [Parameter(Mandatory=$true)]
     [string] $serverUrl,
+
+    [Parameter(Mandatory=$false)]
     [int] $maxRequestsPerSec = 10,
+
+    [Parameter(Mandatory=$false)]
     [int] $priority = $null,
+
+    [Parameter(Mandatory=$false)]
     [int] $runtimeSecs = 5,
+
+    [Parameter(Mandatory=$false)]
     [string] $logDir = "$PSScriptRoot\Logs"
 ) {
     cleanOldLogs -logDir $logDir
@@ -87,4 +106,4 @@ function RunScenarioA(
 #     [int] $priority
 # }
 
-Export-ModuleMember -Function *
+Export-ModuleMember -Function RunScenarioA
