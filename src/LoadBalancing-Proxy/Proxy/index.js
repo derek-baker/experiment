@@ -1,13 +1,12 @@
-// Requires
 var server = require('./lib/server');
-
 var selectors = require('./lib/selectors/');
 var balancers = require('./lib/balancers/');
-
 var groupBalancer = require('./lib/groupbalancer');
 var config = require('./lib/config');
 
-
+/**
+ * @param {*} config 
+ */
 function createServer(config) {
     var newServer = new server.Server(config);
     return newServer;

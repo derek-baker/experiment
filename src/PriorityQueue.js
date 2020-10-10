@@ -3,7 +3,7 @@
 class PriorityQueueElement {
     /**
      * @param {*} response 
-     * @param {number} priority 
+     * @param {import('./PriorityOptions').PriorityOptions} priority 
      */
     constructor(response, priority) {
         this.Response = response;
@@ -19,12 +19,10 @@ class PriorityQueue {
     /**
      * https://www.geeksforgeeks.org/implementation-priority-queue-javascript/
      * @param {any} response 
-     * @param {number} priority
+     * @param {import('./PriorityOptions').PriorityOptions} priority
      */
     Enqueue(response, priority) {
-        // this.queue.push(item);
         let elementIsHighestPriority = true; 
-
         const element = new PriorityQueueElement(response, priority);
   
         // Iterating through the entire item array to 

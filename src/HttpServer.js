@@ -10,6 +10,8 @@ const PriorityQueue = require('./PriorityQueue').PriorityQueue;
 /**
  * @param {number} reverseProxyPort 
  * @param {Array<string>} appServerPorts 
+ * @param {number} priorityOption 
+ * @param {string} priorityHeader 
  */
 const StartLoadBalancer = (
     reverseProxyPort,    
